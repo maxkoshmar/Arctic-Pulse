@@ -1,0 +1,406 @@
+{
+  "name": "with llm",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ТОКЕН OpenRouter"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Ты — ИИ-ассистент хакатона. Ответь строго одним словом 'YES', если новость связана с Арктикой. Если не связана — ответь 'NO'.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ (\"Заголовок: \" + ($json.title || \"\") + \". Текст: \" + ($json.content || \"\")).toJsonString() }}\n    }\n  ],\n  \"temperature\": 0.1\n}",
+        "options": {}
+      },
+      "id": "3200619c-0b19-4ca3-9170-17cf60fb2c5f",
+      "name": "OpenRouter is Arctic?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ТОКЕН OpenRouter"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Ты — ИИ-ассистент. Проанализируй текст и верни строго JSON-объект со следующими ключами: \\\"cleaned_text\\\": \\\"текст новости без мусора и HTML-тегов\\\", \\\"category\\\": \\\"категория новости из списка [Arctic Militarization, International Governance of Arctic Regions, Science & Diplomacy, Not Classified], Not Classified для случаев, где сложно определить категорию\\\", \\\"summary\\\": \\\"краткое содержание в 2-3 предложениях\\\". Не пиши ничего, кроме JSON. Без разметки ```json.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ (\"Заголовок: \" + ( $('RSS Read').item.json.title || \"\") + \". Текст: \" + ( $('RSS Read').item.json.content || \"\")).toJsonString() }}\n    }\n  ],\n  \"temperature\": 0.1\n}",
+        "options": {}
+      },
+      "id": "b58c95dc-6599-44f9-9d56-a9f8657513da",
+      "name": "OpenRouter Clean & Classify & Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1776,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAllRaw",
+        "collection": "sources",
+        "queryParameters": "{\n  \"filter\": {\n    \"_and\": [\n      { \"is_rss\": { \"_eq\": 1 } },\n      { \"is_active\": { \"_eq\": 1 } },\n      { \"is_proxy\": { \"_eq\": 0 } }\n    ]\n  },\n  \"sort\": \"-priority\",\n  \"limit\": 50\n}"
+      },
+      "type": "@directus/n8n-nodes-directus.directus",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -16
+      ],
+      "id": "f62c6a13-e2dd-41b9-beff-9b0a45fa5a87",
+      "name": "Get sources",
+      "credentials": {
+        "directusApi": {
+          "id": "bOJBilgCk2IenNuT",
+          "name": "Directus account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "1a55078e-76e9-433a-87a9-6605b6c7d340",
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        976,
+        96
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "7bbae83a-eeea-4f7c-b5a7-6d646df4e3e3",
+      "name": "news",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1136,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "31eebbb1-4391-4e35-acb3-08219e70acc6",
+      "name": "sources",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        736,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "fc06ec72-428a-42c8-91f9-00bc144e23c5",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "160824a1-38a6-4a5b-a8d1-e28b68a9e679",
+      "name": "Is Arctic?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "news",
+        "collectionFields": {
+          "fields": {
+            "field": [
+              {
+                "name": "source_id",
+                "value": "={{ $('sources').item.json.id }}"
+              },
+              {
+                "name": "arctic_topic",
+                "value": "={{ $json.category }}"
+              },
+              {
+                "name": "title",
+                "value": "={{ $('news').item.json.title }}"
+              },
+              {
+                "name": "is_arctic",
+                "value": "1"
+              },
+              {
+                "name": "content",
+                "value": "={{ $json.cleaned_text }}"
+              },
+              {
+                "name": "content_clean",
+                "value": "={{ $json.cleaned_text }}"
+              },
+              {
+                "name": "summary_ai",
+                "value": "={{ $json.summary }}"
+              },
+              {
+                "name": "publication_date",
+                "value": "={{ $('news').item.json.pubDate }}"
+              },
+              {
+                "name": "tokens_used",
+                "value": "={{ $('OpenRouter Clean & Classify & Summary').item.json.usage.total_tokens }}"
+              },
+              {
+                "name": "source_url",
+                "value": "={{ $('news').item.json.link }}"
+              },
+              {
+                "name": "material_author",
+                "value": "={{ $('news').item.json.creator }}"
+              },
+              {
+                "name": "created_at",
+                "value": "={{ $('news').item.json.isoDate }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@directus/n8n-nodes-directus.directus",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        240
+      ],
+      "id": "80ded47e-094e-4668-bba4-72065b1b931e",
+      "name": "Create an item",
+      "credentials": {
+        "directusApi": {
+          "id": "bOJBilgCk2IenNuT",
+          "name": "Directus account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Забираем текстовую строку из ответа OpenRouter\nconst rawContent = $json.choices[0].message.content;\n\ntry {\n  // Превращаем строку обратно в JSON-объект\n  const parsedData = JSON.parse(rawContent);\n\n  // Возвращаем результат как новые поля в n8n\n  return {\n    cleaned_text: parsedData.cleaned_text,\n    category: parsedData.category,\n    summary: parsedData.summary\n  };\n} catch (error) {\n  // На случай, если нейросеть вернула некорректный JSON\n  return {\n    error: \"Не удалось распарсить JSON от ИИ\",\n    raw_response: rawContent\n  };\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        240
+      ],
+      "id": "95501aec-2c65-48e4-88bc-508af53d82bb",
+      "name": "Split Clean Text & Category & Summary"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "13b45983-0311-4d0d-a279-f2ab219d6446",
+      "name": "1 hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        -16
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenRouter is Arctic?": {
+      "main": [
+        [
+          {
+            "node": "Is Arctic?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Clean & Classify & Summary": {
+      "main": [
+        [
+          {
+            "node": "Split Clean Text & Category & Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get sources": {
+      "main": [
+        [
+          {
+            "node": "sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "news": {
+      "main": [
+        [
+          {
+            "node": "sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenRouter is Arctic?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sources": {
+      "main": [
+        [],
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Arctic?": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Clean & Classify & Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an item": {
+      "main": [
+        [
+          {
+            "node": "news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Clean Text & Category & Summary": {
+      "main": [
+        [
+          {
+            "node": "Create an item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1 hour": {
+      "main": [
+        [
+          {
+            "node": "Get sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "40c3de81-8476-44a9-abdc-2cbab78db6ea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "858dc7d1a7bf4a37d55c2c90d3f949a6ddad99437e6c8994e15f5cf0d54bd822"
+  },
+  "id": "UrC3kiDiACkVy6qA",
+  "tags": []
+}

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Пульс Арктики / Arctic Pulse</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0a1628; color: #e0eaf5; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #0d2b5e 0%, #1a4a8a 100%); padding: 16px 32px; border-bottom: 2px solid #2a5aa0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    header .logo { font-size: 22px; font-weight: 700; color: #7ecfff; letter-spacing: 1px; white-space: nowrap; }
+    header .subtitle { font-size: 12px; color: #8ab4d4; margin-top: 2px; white-space: nowrap; }
+    header .spacer { flex: 1; }
+    nav { display: flex; gap: 4px; align-items: center; }
+    .nav-link { padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; color: #8ab4d4; text-decoration: none; transition: background 0.2s, color 0.2s; border: 1px solid transparent; }
+    .nav-link:hover { color: #7ecfff; background: rgba(126,207,255,0.08); }
+    .nav-link.active { background: #1565c0; color: #fff; border-color: #1976d2; }
+    .aurora { width: 36px; height: 36px; flex-shrink: 0; }
+    .lang-toggle { display: flex; background: #0a1a3a; border: 1px solid #2a4a70; border-radius: 20px; overflow: hidden; }
+    .lang-btn { padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: #8ab4d4; transition: all 0.2s; letter-spacing: 0.5px; }
+    .lang-btn.active { background: #1565c0; color: #fff; }
+    .lang-btn:hover:not(.active) { color: #7ecfff; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+    .filters { background: #112240; border: 1px solid #1e3a5f; border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 160px; flex: 1; }
+    .filter-group label { font-size: 12px; color: #7ecfff; text-transform: uppercase; letter-spacing: 0.5px; }
+    select, input[type="text"], input[type="date"] { background: linear-gradient(180deg, #0f2243 0%, #0b1a34 100%); border: 1px solid #2a4a70; color: #e0eaf5; padding: 10px 12px; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%; min-height: 40px; }
+    select:hover, input[type="text"]:hover, input[type="date"]:hover { border-color: #4f78a7; }
+    select:focus, input[type="text"]:focus, input[type="date"]:focus { border-color: #7ecfff; box-shadow: 0 0 0 3px rgba(126,207,255,0.14); }
+    select option { background: #0d1f3c; }
+    .btn { background: linear-gradient(135deg, #1565c0, #1976d2); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity 0.2s; white-space: nowrap; }
+    .btn:hover { opacity: 0.85; }
+    .btn.secondary { background: #1e3a5f; }
+    .stats-bar { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .stat-chip { background: #112240; border: 1px solid #1e3a5f; border-radius: 20px; padding: 6px 14px; font-size: 13px; color: #8ab4d4; }
+    .stat-chip span { color: #7ecfff; font-weight: 600; }
+    .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+    .news-card { background: #112240; border: 1px solid #1e3a5f; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.2s, transform 0.2s; cursor: pointer; outline: none; }
+    .news-card:hover { border-color: #7ecfff; transform: translateY(-2px); }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .topic-badge { background: #0d3060; color: #7ecfff; border: 1px solid #2a5a9a; font-size: 11px; padding: 3px 10px; border-radius: 12px; white-space: nowrap; }
+    .card-title { font-size: 15px; font-weight: 600; color: #d0e8ff; line-height: 1.4; overflow-wrap: anywhere; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .news-card.expanded .card-title { display: block; -webkit-line-clamp: unset; overflow: visible; }
+    .card-summary-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .card-summary { font-size: 13px; color: #8ab4d4; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
+    .card-summary.is-collapsed { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+    .news-card.expanded .card-summary { display: block; -webkit-line-clamp: unset; overflow: visible; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: #5a7a9a; border-top: 1px solid #1e3a5f; padding-top: 10px; margin-top: 4px; }
+    .card-source { color: #4a8abf; text-decoration: none; overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
+    .card-source:hover { color: #7ecfff; }
+    .no-summary { font-size: 12px; color: #3a5a7a; font-style: italic; overflow-wrap: anywhere; word-break: break-word; }
+    .card-date { white-space: nowrap; flex-shrink: 0; }
+    .card-hint { font-size: 11px; color: #5a7a9a; margin-top: -2px; user-select: none; }
+    .loading { text-align: center; padding: 60px; color: #8ab4d4; font-size: 16px; }
+    .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #1e3a5f; border-top-color: #7ecfff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; padding: 60px; color: #5a7a9a; }
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+    .page-btn { background: #112240; border: 1px solid #1e3a5f; color: #8ab4d4; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .page-btn:hover, .page-btn.active { background: #1565c0; border-color: #1976d2; color: #fff; }
+    .error-msg { background: #2d1515; border: 1px solid #7d2020; color: #ff8080; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg class="aurora" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="16" fill="#0d2b5e" stroke="#2a5aa0" stroke-width="1.5"/>
+      <ellipse cx="18" cy="22" rx="10" ry="4" fill="#7ecfff" opacity="0.15"/>
+      <path d="M8 18 Q13 10 18 16 Q23 22 28 14" stroke="#7ecfff" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M10 20 Q15 13 18 18 Q21 23 26 16" stroke="#4caf50" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.7"/>
+      <circle cx="18" cy="8" r="2" fill="#ffd54f" opacity="0.9"/>
+    </svg>
+    <div>
+      <div class="logo" data-i18n="title">Пульс Арктики</div>
+      <div class="subtitle" data-i18n="subtitle">Мониторинг арктических новостей</div>
+    </div>
+    <div class="spacer"></div>
+    <nav>
+      <a href="home.html" class="nav-link" data-i18n="nav_home">Главная</a>
+      <a href="index.html" class="nav-link active" data-i18n="nav_catalog">Каталог</a>
+      <a href="analytics.html" class="nav-link" data-i18n="nav_analytics">Аналитика</a>
+    </nav>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-ru" onclick="setLang('ru')">РУС</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">ENG</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="filters">
+      <div class="filter-group">
+        <label data-i18n="lbl_topic">Тема</label>
+        <select id="topicFilter">
+          <option value="" data-i18n="opt_all_topics">Все темы</option>
+          <option value="Arctic Militarization" data-i18n="opt_military">Милитаризация Арктики</option>
+          <option value="International Governance of Arctic Regions" data-i18n="opt_governance">Международное управление</option>
+          <option value="Science & Diplomacy" data-i18n="opt_science">Наука и дипломатия</option>
+          <option value="Not Classified" data-i18n="opt_unclassified">Не классифицировано</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label data-i18n="lbl_source">Источник</label>
+        <select id="sourceFilter" disabled>
+          <option value="" data-i18n="opt_all_sources">Все источники</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label data-i18n="lbl_date_from">Дата с</label>
+        <input type="date" id="dateFrom" />
+      </div>
+      <div class="filter-group">
+        <label data-i18n="lbl_date_to">Дата по</label>
+        <input type="date" id="dateTo" />
+      </div>
+      <div class="filter-group">
+        <label data-i18n="lbl_search">Поиск</label>
+        <input type="text" id="searchInput" data-i18n-placeholder="ph_search" placeholder="Ключевые слова..." />
+      </div>
+      <div class="filter-group">
+        <label data-i18n="lbl_sort">Сортировка</label>
+        <select id="sortFilter">
+          <option value="-publication_date" data-i18n="opt_newest">Сначала новые</option>
+          <option value="publication_date" data-i18n="opt_oldest">Сначала старые</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <button class="btn" onclick="loadNews(1)" data-i18n="btn_search">Найти</button>
+        <button class="btn secondary" onclick="resetFilters()" data-i18n="btn_reset">Сброс</button>
+      </div>
+    </div>
+
+    <div id="error" style="display:none" class="error-msg"></div>
+
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <div class="stat-chip" id="statFound"></div>
+      <div class="stat-chip" id="statPage"></div>
+    </div>
+
+    <div id="content">
+      <div class="loading"><div class="spinner"></div><div data-i18n="loading">Загрузка новостей...</div></div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8055';
+    const PAGE_SIZE = 21;
+    let currentPage = 1;
+    let totalItems = 0;
+    let currentLang = 'ru';
+
+    const I18N = {
+      ru: {
+        title: 'Пульс Арктики', subtitle: 'Мониторинг арктических новостей',
+        nav_home: 'Главная', nav_catalog: 'Каталог', nav_analytics: 'Аналитика',
+        lbl_topic: 'Тема', lbl_source: 'Источник', lbl_date_from: 'Дата с', lbl_date_to: 'Дата по',
+        lbl_search: 'Поиск', lbl_sort: 'Сортировка',
+        opt_all_topics: 'Все темы', opt_all_sources: 'Все источники',
+        opt_military: 'Милитаризация Арктики', opt_governance: 'Международное управление',
+        opt_science: 'Наука и дипломатия', opt_unclassified: 'Не классифицировано',
+        opt_newest: 'Сначала новые', opt_oldest: 'Сначала старые',
+        btn_search: 'Найти', btn_reset: 'Сброс', ph_search: 'Ключевые слова...',
+        loading: 'Загрузка новостей...', stat_found: 'Найдено', stat_page: 'Страница',
+        no_results: 'Новости не найдены. Попробуйте изменить фильтры.',
+        source_link: 'Источник', no_summary: 'Краткое изложение не доступно',
+        prev_page: '← Пред', next_page: 'След →', arctic_badge: '🧊 Арктика',
+        api_error: 'Ошибка подключения к API', ensure_running: 'Убедитесь что Directus запущен (http://localhost:8055)',
+      },
+      en: {
+        title: 'Arctic Pulse', subtitle: 'Arctic News Monitor',
+        nav_home: 'Home', nav_catalog: 'Catalog', nav_analytics: 'Analytics',
+        lbl_topic: 'Topic', lbl_source: 'Source', lbl_date_from: 'Date from', lbl_date_to: 'Date to',
+        lbl_search: 'Search', lbl_sort: 'Sort by',
+        opt_all_topics: 'All topics', opt_all_sources: 'All sources',
+        opt_military: 'Arctic Militarization', opt_governance: 'International Governance',
+        opt_science: 'Science & Diplomacy', opt_unclassified: 'Not Classified',
+        opt_newest: 'Newest first', opt_oldest: 'Oldest first',
+        btn_search: 'Search', btn_reset: 'Reset', ph_search: 'Keywords...',
+        loading: 'Loading news...', stat_found: 'Found', stat_page: 'Page',
+        no_results: 'No news found. Try adjusting the filters.',
+        source_link: 'Source', no_summary: 'Summary not available',
+        prev_page: '← Prev', next_page: 'Next →', arctic_badge: '🧊 Arctic',
+        api_error: 'API connection error', ensure_running: 'Make sure Directus is running (http://localhost:8055)',
+      }
+    };
+
+    function t(key) { return I18N[currentLang][key] || key; }
+    function escapeHtml(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    function setLang(lang) {
+      currentLang = lang;
+      document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+      document.documentElement.lang = lang;
+      applyI18n();
+      if (document.getElementById('content').querySelector('.news-grid')) loadNews(currentPage);
+    }
+
+    function applyI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.dataset.i18n; if(I18N[currentLang][k]) el.textContent = I18N[currentLang][k]; });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const k = el.dataset.i18nPlaceholder; if(I18N[currentLang][k]) el.placeholder = I18N[currentLang][k]; });
+      document.querySelectorAll('option[data-i18n]').forEach(el => { const k = el.dataset.i18n; if(I18N[currentLang][k]) el.textContent = I18N[currentLang][k]; });
+      const sf = document.getElementById('sourceFilter');
+      if(sf) { const opt = sf.querySelector('option[data-i18n="opt_all_sources"]'); if(opt && I18N[currentLang].opt_all_sources) opt.textContent = I18N[currentLang].opt_all_sources; }
+      if(document.getElementById('statsBar').style.display !== 'none') {
+        const total = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+        document.getElementById('statFound').innerHTML = `${t('stat_found')}: <span>${totalItems}</span>`;
+        document.getElementById('statPage').innerHTML = `${t('stat_page')}: <span>${currentPage} / ${total}</span>`;
+      }
+    }
+
+    async function loadNews(page = 1) {
+      currentPage = page;
+      const contentDiv = document.getElementById('content');
+      const errorDiv = document.getElementById('error');
+      errorDiv.style.display = 'none';
+      contentDiv.innerHTML = `<div class="loading"><div class="spinner"></div><div>${t('loading')}</div></div>`;
+
+      const topic = document.getElementById('topicFilter').value;
+      const source = document.getElementById('sourceFilter').value;
+      const dateFrom = document.getElementById('dateFrom').value;
+      const dateTo = document.getElementById('dateTo').value;
+      const search = document.getElementById('searchInput').value.trim();
+      const sort = document.getElementById('sortFilter').value;
+
+      const params = new URLSearchParams();
+      params.set('limit', PAGE_SIZE);
+      params.set('offset', (page-1)*PAGE_SIZE);
+      params.set('sort', sort);
+      params.set('meta', 'filter_count,total_count');
+      params.set('fields', 'id,title,summary_ai,content, content_clean,source_url,publication_date,arctic_topic');
+
+      
+      const filters = {};
+      if (topic) filters['arctic_topic'] = { '_eq': topic };
+      if (source) {
+
+        filters['source_url'] = { '_icontains': source };
+      }
+      if (dateFrom || dateTo) {
+        filters['publication_date'] = {};
+        if (dateFrom) filters['publication_date']['_gte'] = dateFrom;
+        if (dateTo) filters['publication_date']['_lte'] = dateTo;
+      }
+      if(Object.keys(filters).length) params.set('filter', JSON.stringify(filters));
+      if(search) params.set('search', search);
+
+      try {
+        const res = await fetch(`${API}/items/news?${params}`);
+        if(!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err?.errors?.[0]?.message || `HTTP ${res.status}`); }
+        const data = await res.json();
+        totalItems = data.meta?.filter_count ?? data.meta?.total_count ?? 0;
+        renderNews(data.data || []);
+        renderPagination();
+        document.getElementById('statsBar').style.display = 'flex';
+        const total = Math.max(1, Math.ceil(totalItems/PAGE_SIZE));
+        document.getElementById('statFound').innerHTML = `${t('stat_found')}: <span>${totalItems}</span>`;
+        document.getElementById('statPage').innerHTML = `${t('stat_page')}: <span>${page} / ${total}</span>`;
+      } catch(e) {
+        contentDiv.innerHTML = `<div class="empty-state">${t('no_results')}</div>`;
+        errorDiv.textContent = `${t('api_error')}: ${e.message}. ${t('ensure_running')}`;
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    function renderNews(items) {
+      const contentDiv = document.getElementById('content');
+      if(!items.length) { contentDiv.innerHTML = `<div class="empty-state">${t('no_results')}</div>`; return; }
+      contentDiv.innerHTML = `<div class="news-grid">${items.map(renderCard).join('')}</div>`;
+    }
+
+    function getSummaryText(item) {
+      if(item.summary_ai) return item.summary_ai;
+      if(item.content) return item.content.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      return null;
+    }
+
+    function toggleCard(card) {
+      const exp = card.classList.toggle('expanded');
+      const title = card.querySelector('.card-title');
+      const summary = card.querySelector('.card-summary');
+      const hint = card.querySelector('.card-hint');
+      if(title && title.dataset.full) title.textContent = exp ? title.dataset.full : (title.dataset.preview||'');
+      if(summary && summary.dataset.full) {
+        summary.textContent = exp ? summary.dataset.full : (summary.dataset.preview||'');
+        summary.classList.toggle('is-collapsed', !exp);
+      }
+      if(hint) hint.textContent = exp ? (currentLang==='ru'?'Нажмите, чтобы свернуть':'Click to collapse') : (currentLang==='ru'?'Нажмите, чтобы раскрыть':'Click to expand');
+    }
+
+    function renderCard(item) {
+      const date = item.publication_date ? new Date(item.publication_date).toLocaleDateString(currentLang==='ru'?'ru-RU':'en-US',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      const topic = (item.arctic_topic && item.arctic_topic !== 'Not Classified') ? (currentLang==='ru' ? translateTopic(item.arctic_topic) : item.arctic_topic) : '';
+      const topicBadge = topic ? `<span class="topic-badge">${topic}</span>` : '';
+      const titleText = item.title || '—';
+      const summaryText = getSummaryText(item);
+      const safeTitle = escapeHtml(titleText);
+      const safeTitlePreview = escapeHtml(titleText.length>120 ? titleText.slice(0,120)+'…' : titleText);
+      const safeSummary = summaryText ? escapeHtml(summaryText) : '';
+      const safeSummaryPreview = summaryText ? escapeHtml(summaryText.length>300 ? summaryText.slice(0,300)+'…' : summaryText) : '';
+      const isValidUrl = item.source_url && (item.source_url.startsWith('http://') || item.source_url.startsWith('https://'));
+      const sourceHtml = isValidUrl ? `<a class="card-source" href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${t('source_link')} ↗</a>` : `<span></span>`;
+      const showHint = safeTitlePreview !== safeTitle || (summaryText && safeSummaryPreview !== safeSummary);
+
+      const summaryHtml = summaryText ? `
+        <div class="card-summary-wrap">
+          <div class="card-summary is-collapsed" data-full="${safeSummary}" data-preview="${safeSummaryPreview}">${safeSummaryPreview}</div>
+          ${showHint ? `<div class="card-hint">${currentLang==='ru'?'Нажмите, чтобы раскрыть':'Click to expand'}</div>` : ''}
+        </div>
+      ` : `<div class="no-summary">${t('no_summary')}</div>`;
+
+      return `
+        <div class="news-card" role="button" tabindex="0" aria-expanded="false" onclick="toggleCard(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCard(this);}">
+          <div class="card-header"><div style="display:flex;gap:6px;flex-wrap:wrap;">${topicBadge}</div></div>
+          <div class="card-title" data-full="${safeTitle}" data-preview="${safeTitlePreview}">${safeTitlePreview}</div>
+          ${summaryHtml}
+          <div class="card-footer">${sourceHtml}<span class="card-date">${date}</span></div>
+        </div>
+      `;
+    }
+
+    function translateTopic(t) {
+      const map = { 'Arctic Militarization':'Милитаризация Арктики', 'International Governance of Arctic Regions':'Международное управление', 'Science & Diplomacy':'Наука и дипломатия', 'Not Classified':'Не классифицировано' };
+      return map[t] || t;
+    }
+
+    function renderPagination() {
+      const total = Math.ceil(totalItems/PAGE_SIZE);
+      if(total<=1) { document.getElementById('pagination').innerHTML = ''; return; }
+      let html = '';
+      const start = Math.max(1, currentPage-2), end = Math.min(total, currentPage+2);
+      if(currentPage>1) html += `<button class="page-btn" onclick="loadNews(${currentPage-1})">${t('prev_page')}</button>`;
+      if(start>1) html += `<button class="page-btn" onclick="loadNews(1)">1</button>${start>2 ? '<span style="color:#5a7a9a;padding:8px">…</span>' : ''}`;
+      for(let i=start; i<=end; i++) html += `<button class="page-btn${i===currentPage?' active':''}" onclick="loadNews(${i})">${i}</button>`;
+      if(end<total) html += `${end<total-1?'<span style="color:#5a7a9a;padding:8px">…</span>':''}<button class="page-btn" onclick="loadNews(${total})">${total}</button>`;
+      if(currentPage<total) html += `<button class="page-btn" onclick="loadNews(${currentPage+1})">${t('next_page')}</button>`;
+      document.getElementById('pagination').innerHTML = html;
+    }
+
+    async function loadSources() {
+      const sourceFilter = document.getElementById('sourceFilter');
+      if (!sourceFilter) return;
+
+      sourceFilter.disabled = true;
+      sourceFilter.innerHTML = `<option value="" data-i18n="opt_all_sources">${t('opt_all_sources')}</option>`;
+
+      try {
+        const params = new URLSearchParams();
+        params.set('limit', '500');
+        params.set('sort', 'id');
+        params.set('fields', 'id,url,is_active');
+        params.set('filter', JSON.stringify({ is_active: { '_eq': true } }));
+
+        const res = await fetch(`${API}/items/sources?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const sources = data.data || [];
+        const map = new Map();
+        for (const src of sources) {
+          let rawUrl = src.url;
+          if (!rawUrl) continue;
+          let domain = rawUrl;
+          try {
+            domain = new URL(rawUrl).hostname.replace(/^www\./, '');
+          } catch(e) {
+            domain = rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+          }
+          if (!map.has(domain)) {
+            map.set(domain, { domain, url: rawUrl });
+          }
+        }
+        const domains = Array.from(map.keys()).sort((a,b) => a.localeCompare(b));
+        for (const domain of domains) {
+          const { url } = map.get(domain);
+          const option = document.createElement('option');
+          option.value = domain;  
+          option.textContent = domain;
+          sourceFilter.appendChild(option);
+        }
+      } catch (e) {
+        console.error('loadSources error', e);
+      } finally {
+        sourceFilter.disabled = false;
+      }
+    }
+
+    function resetFilters() {
+      document.getElementById('topicFilter').value = '';
+      document.getElementById('sourceFilter').value = '';
+      document.getElementById('dateFrom').value = '';
+      document.getElementById('dateTo').value = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('sortFilter').value = '-publication_date';
+      loadNews(1);
+    }
+
+    document.getElementById('searchInput').addEventListener('keydown', e => { if(e.key==='Enter') loadNews(1); });
+    applyI18n();
+    loadSources();
+    loadNews(1);
+  </script>
+</body>
+</html>
